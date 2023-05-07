@@ -68,16 +68,25 @@ jobs:
       - name: Check PR approval
         env:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          QUERY: |-
+            query ($owner: String!, $name: String!, $pr: Int!) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                  reviewDecision
+                }
+              }
+            }
         run: |
-          if jq --exit-status 'all(.[].state; .!= "APPROVED")'
+          if jq --exit-status '.data.repository.pullRequest.reviewDecision != "APPROVED"'
           then
             echo "::error ::PR #$PR is not approved!"
             exit 1
           fi < <(
-            gh api \
-              --header 'Accept: application/vnd.github+json' \
-              --header 'X-GitHub-Api-Version: 2022-11-28' \
-              "repos/{owner}/{repo}/pulls/$PR/reviews"
+            gh api graphql \
+              --field owner='{owner}' \
+              --field name='{repo}' \
+              --field pr="$PR" \
+              --raw-field query="$QUERY"
           )
 
       - name: Check PR branch for mergeability

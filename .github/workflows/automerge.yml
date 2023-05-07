@@ -78,6 +78,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.pr.outputs.number }}
+          QUERY: |-
+            query ($owner: String!, $name: String!, $pr: Int!) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                  reviewDecision
+                  commits(last: 1) {
+                    nodes {
+                      commit {
+                        checkSuites(last: 1) {
+                          nodes {
+                            conclusion
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
         run: |
           attempt=0
           max_attempts=5
@@ -87,40 +106,29 @@ jobs:
           do
             attempt=$(( attempt + 1 ))
 
-            approved=false
-            complete=false
-            mergeable=false
+            query_response="$(
+              gh api graphql \
+                --field owner='{owner}' \
+                --field name='{repo}' \
+                --field pr="$PR" \
+                --raw-field query="$QUERY" \
+                --jq '.data.repository.pullRequest'
+            )"
 
-            review_data="$(
+            approved="$(
+              jq --raw-output '.reviewDecision == "APPROVED"' <<< "$query_response"
+            )"
+            complete="$(
+              jq --raw-output '.commits.nodes[0].commit.checkSuites.nodes[0].conclusion == "SUCCESS"' <<< "$query_response"
+            )"
+            # See https://github.com/octokit/octokit.net/issues/1763 for possible `mergeable_state` values.
+            mergeable="$(
               gh api \
                 --header 'Accept: application/vnd.github+json' \
                 --header 'X-GitHub-Api-Version: 2022-11-28' \
-                "repos/$GH_REPO/pulls/$PR/reviews"
+                "repos/{owner}/{repo}/pulls/$PR" \
+                --jq '(.mergeable_state == "clean") and (.draft | not)'
             )"
-            if jq --exit-status 'any(.[].state; .== "APPROVED")' <<< "$review_data" &&
-               jq --exit-status 'all(.[].state; .!= "CHANGES_REQUESTED" )' <<< "$review_data"
-            then
-              approved=true
-            fi
-
-            if gh pr checks "$PR"
-            then
-              complete=true
-            fi
-
-            pr_data="$(
-              gh api \
-                --header 'Accept: application/vnd.github+json' \
-                --header 'X-GitHub-Api-Version: 2022-11-28' \
-                "repos/$GH_REPO/pulls/$PR"
-            )"
-
-            # See https://github.com/octokit/octokit.net/issues/1763 for possible values.
-            if jq --exit-status '.mergeable_state == "clean"' <<< "$pr_data" &&
-               jq --exit-status '.draft | not' <<< "$pr_data"
-            then
-              mergeable=true
-            fi
 
             if [[ "$approved" = "true" ]] &&
                [[ "$complete" = "true" ]] &&
