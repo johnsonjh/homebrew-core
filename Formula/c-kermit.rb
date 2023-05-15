@@ -30,6 +30,10 @@ class CKermit < Formula
   uses_from_macos "libxcrypt"
   uses_from_macos "ncurses"
 
+  on_linux do
+    depends_on "linux-pam"
+  end
+
   # Apply patch to fix build failure with glibc 2.28+
   # Will be fixed in next release: https://www.kermitproject.org/ckupdates.html
   patch :DATA
