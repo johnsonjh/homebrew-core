@@ -1329,3 +1329,73 @@ index 3ce56a0..ce1a1cc 100644
          TELOPT_UNANSWERED_WONT(TELOPT_ENCRYPTION) = 1;
      }
      if (TELOPT_U(TELOPT_ENCRYPTION) ||
+
+diff --git a/makefile b/makefile
+index 3b65a9a..bfe71f8 100644
+--- a/makefile
++++ b/makefile
+@@ -6295,33 +6295,33 @@ linux+krb5+ssl linux+krb5+openssl:
+ 	esac; \
+ 	HAVE_DES=''; \
+ 	DES_LIB=''; \
+ 	if ls /usr/lib/libdes* > /dev/null 2> /dev/null || \
+ 	   ls $(SSLLIB)/libdes* > /dev/null 2> /dev/null; then \
+ 	      DES_LIB='-ldes425'; \
+ 	      HAVE_DES='-DCK_DES -DLIBDES'; \
+ 	      echo "HAVE DES"; \
+ 	   else echo "NO DES"; \
+ 	fi; \
+-	K5CRYPTO=''; \
++	K5CRYPTO='-lk5crypto'; \
+         if ls /lib/libk5crypto* > /dev/null 2> /dev/null; then \
+                 K5CRYPTO='-lk5crypto'; \
+ 	else if ls /usr/lib/libk5crypto* > /dev/null 2> /dev/null; then \
+ 		K5CRYPTO='-lk5crypto'; \
+         else if ls /usr/lib64/libk5crypto* > /dev/null 2> /dev/null; then \
+                 K5CRYPTO='-lk5crypto'; \
+ 	fi; fi; fi; \
+-	COM_ERR=''; \
++	COM_ERR='-lcom_err'; \
+ 	if ls /lib/libcom_err* > /dev/null 2> /dev/null; then \
+ 		COM_ERR='-lcom_err'; \
+ 	fi; \
+-	GSSAPILIB='-lgssapi'; \
++	GSSAPILIB='-lgssapi_krb5'; \
+ 	if ls /lib/libgssapi_krb5* > /dev/null 2> /dev/null; then \
+ 		GSSAPILIB='-lgssapi_krb5'; \
+ 	else if ls /usr/lib/libgssapi_krb5* > /dev/null 2> /dev/null; then \
+ 		GSSAPILIB='-lgssapi_krb5'; \
+ 	else K5DIR=`echo $(K5LIB) | sed 's|-L||'`; \
+ 		if ls $$K5DIR/libgssapi_krb5* > /dev/null 2> /dev/null; then \
+ 			GSSAPILIB='-lgssapi_krb5'; \
+ 	fi; fi; fi; \
+ 	$(MAKE) linux KTARGET=$${KTARGET:-$(@)} "CC = gcc" "CC2 = gcc" \
+ 	"KFLAGS= -DCK_AUTHENTICATION -DCK_KERBEROS -DKRB5 \
+
+diff --git a/makefile b/makefile
+index bfe71f8..b5ef2b7 100644
+--- a/makefile
++++ b/makefile
+@@ -6322,21 +6322,21 @@ linux+krb5+ssl linux+krb5+openssl:
+ 	else K5DIR=`echo $(K5LIB) | sed 's|-L||'`; \
+ 		if ls $$K5DIR/libgssapi_krb5* > /dev/null 2> /dev/null; then \
+ 			GSSAPILIB='-lgssapi_krb5'; \
+ 	fi; fi; fi; \
+ 	$(MAKE) linux KTARGET=$${KTARGET:-$(@)} "CC = gcc" "CC2 = gcc" \
+ 	"KFLAGS= -DCK_AUTHENTICATION -DCK_KERBEROS -DKRB5 \
+ 	-DCK_SSL -DCK_PAM -DZLIB -DCK_SHADOW $$OPENSSLOPTION $(SSLINC) \
+ 	-DCK_ENCRYPTION $$HAVE_DES $(K5INC) $(K5INC)/krb5 \
+ 	-I/usr/include/et $(KFLAGS)" "LNKFLAGS = $(LNKFLAGS)" \
+ 	"LIBS = $(K5LIB) $(SSLLIB) -lssl $$DES_LIB -lpam -lz \
+-	-lcrypto $$GSSAPILIB -lkrb5 $$K5CRYPTO $$COM_ERR $(LIBS)" ; \
++	-lcrypto $$GSSAPILIB -lkrb5 $$K5CRYPTO $$COM_ERR -lncurses $(LIBS)" ; \
+ 	if [ ! -f ./wermit ] || [ ./ckcmai.o -nt ./wermit ] ; then \
+ 		echo ""; \
+ 		echo "If build failed try:"; \
+ 		echo ""; \
+ 		echo "  make clean ; make $${KTARGET:-$(@)} KFLAGS=-UCK_DES"; \
+ 		echo ""; \
+ 	fi
+ 
+ # ::BEGIN_OLD_LINUX_TARGETS::
+ 
