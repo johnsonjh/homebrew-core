@@ -32,6 +32,7 @@ class Dropbear < Formula
   uses_from_macos "zlib"
 
   on_linux do
+    depends_on "krb5"
     depends_on "linux-pam"
   end
 
